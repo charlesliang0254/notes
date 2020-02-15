@@ -94,9 +94,261 @@ System.out.printf();
 - 数组工具类Arrays
 - 数组的数组
 
-## 面向对象
+随机数Random：
 
-### 对象与类
+简单使用
+
+```java
+import java.util.Random;
+public class Main{
+    public static void main(String[] args){
+        Random rd = new Random();//创建一个随机类对象
+        int i = rd.nextInt();//从Integer.MIN_VALUE到Integer.MAX_VALUE抽取一个随机数
+        System.out.println("i = "+i);
+        i = rd.nextInt(100);//表示从[0,100)中抽取一个随机数
+        System.out.println("i = "+i);
+    }
+}
+```
+
+
+
+Date类型：
+
+表示日期和时间的类，针对特定的时刻，精确到毫秒（1s = 1000ms）
+
+毫秒值：UTC纪元（1970年1月1日0时 GMT，格林威治时间）距离某个时刻的毫秒数
+
+毫秒值的作用：先将时间格式转换为毫秒值，然后进行时间计算，最后将计算结果再转换为时间格式。
+
+获得当前系统时间毫秒值：System.currentTimeMillis()
+
+格式化时间：
+
+- year：年份数 - 1900
+- month：月份数 - 1
+- date：大月表示为1到31的整数
+- hour：表示为0到23的整数
+- minute：表示为0到23的整数
+- second：表示为0到61的整数，其中60和61用于时间的校正
+- 如果超出了时间单位的范围会进位，例如1月32日就等价于2月1日
+
+没有被弃用的构造器与方法：
+
+Date()：无参构造器，获得当前时间
+
+Date(long date)：有参构造器，根据毫秒值构造时间
+
+boolean after(Date when)：判断时间是否位于给定时间之后
+
+boolean before(Date when)：判断时间是否位于给定时间之前
+
+int compareTo(Date anotherDate)：比较时间的先后
+
+boolean equals(Object obj)：判断时间是否相等
+
+static Date from(Instant instant)：从一个Instant对象获得一个时间对象
+
+long getTime()：获得时间对象的毫秒值
+
+
+
+DateFormat
+
+抽象类，用于时间格式化与时间字符串的解析
+
+FULL、LONG、MEDIUM、SHORT，
+
+以当前的地区Locale格式化时间对象：
+
+```java
+//getDateInstance返回的是一个SimpleDateFormat对象
+String str = DateFormat.getDateInstance().format(new Date())
+```
+
+如果日期时间格式需要重复使用可以将DateFormat变量引用DateFormat对象
+
+```java
+DateFormat df = DateFormat.getDateInstance();
+String str = df.format(new Date());
+String str2 = df.format(new Date(0));
+```
+
+使用不同的地区Locale格式化日期：
+
+```java
+DateFormat df = DateFormat.getDateInstance(DateFormat.LONG,Locale.FRANCE);
+```
+
+可以设置日期时间格式的地区Locale、时区TimeZone、历法Calendar
+
+使用parse方法解析时间字符串：
+
+```java
+Date date = df.parse("2020-2-2 2:2:2");
+```
+
+如果需要的是日期时间、时间，可以使用类似的DateTime、Time相关方法
+
+使用SimpleDateFormat进行更为精细的控制
+
+
+
+SimpleDateFormat日期时间对象：
+
+允许用户自定义日期和时间模式：
+
+| 字母 | 日期或时间组件                                         | 表示               | 实例                                      |
+| ---- | ------------------------------------------------------ | ------------------ | ----------------------------------------- |
+| G    | 公元前或公元后                                         | Text               | AD                                        |
+| y    | 年                                                     | Year               | 1996; 96                                  |
+| Y    | 星期年，2019年12月29、30、31日的星期年是2020年         | Year               | 2009; 09                                  |
+| M    | 月，可能由多个单词表示                                 | Month              | July; Jul; 07                             |
+| L    | 月，独立格式，一个单词表示                             | Month              | July; Jul; 07                             |
+| w    | 该年第几周                                             | Number             | 27                                        |
+| W    | 该月份第几周                                           | Number             | 2                                         |
+| D    | 该年第几天                                             | Number             | 189                                       |
+| d    | 该月第几天                                             | Number             | 10                                        |
+| F    | 星期，表示为数字，星期日是第一天                       | Number             | 2                                         |
+| E    | 星期，表示为数字、汉字、曜日、英文单词，星期日是第一天 | Text               | Tuesday; Tue                              |
+| u    | 星期，表示为数字，星期一是第一天                       | Number             | 1                                         |
+| a    | am和pm标记                                             | Text               | PM                                        |
+| H    | 时，0-23                                               | Number             | 0                                         |
+| k    | 时，1-24                                               | Number             | 24                                        |
+| K    | 时，0-11                                               | Number             | 0                                         |
+| h    | 时，1-12                                               | Number             | 12                                        |
+| m    | 分                                                     | Number             | 30                                        |
+| s    | 秒                                                     | Number             | 55                                        |
+| S    | 毫秒                                                   | Number             | 978                                       |
+| z    | 时区，一般格式                                         | General time zone  | Pacific Standard Time`; `PST`; `GMT-08:00 |
+| Z    | 时区，RFC 822格式                                      | RFC 822 time zone  | -0800                                     |
+| X    | 时区，ISO 8601格式                                     | ISO 8601 time zone | -08`; `-0800`; `-08:00                    |
+
+ 模式字母可以重复，重复的次数不同，显示的精确程度也不同：
+
+- Text：格式化时多于4次重复会显示完整格式，否则会显示缩写或简写格式；解析时会接受两种格式
+
+- Number：规定最小长度，不够的用0填充
+
+- Year：如果格式化器使用格里高利历法，以下规则将被应用
+
+  - 格式化时，如果模式字母重复两次，年份会被截断至两位，其它的则按number进行解释
+  - 解析时，如果模式字母重复超过两次，年份会按照字面值解释，不管年份有几位
+  - 解析简写格式的年份（y或者yy）时，年份必须被解释为特定世纪的年份。特定世纪为SimpleDateFormat实例被创建的前80年和后20年。例如98就表示1998年，35就表示2035年。解析期间，只有表示年份的字符串为2位数字组成才会被当作简写格式的年份，否则就按字面值解释。
+
+  如果不是，特定历法系统的格式将被应用。对于格式化与解析，如果模式字母重复次数为4次以上，特定历法的长的格式将被使用，否则短的或者简写的格式将被使用。
+
+  如果周期年不被支持，那么y与Y是等价的
+
+- Month：如果模式字母的重复次数达到3次，那么月份将被解释为文本，否则将被解释为数字；M表示上下文相关，而L表示上下文无关，例如在“d MMMM”模式中，由于有d的存在，Catalan的1月表示为“de gener”；而在“MMMM”模式中，由于没有d的存在，Catalan的1月表示为“gener”。如果一个日期格式符号对象通过构造器或者set方法被设定，那么月份名称将会依据日期符号格式对象被指定。
+
+- 时区：
+
+  - 一般形式的时区定义为：GMT +|- Hours : Minutes，Hours和Minutes分别是三位和两位数字；
+
+  - RFC 822时区定义为：+|- TwoDigitHours Minutes
+
+  - ISO 8601时区定义为：
+
+    ```
+    ISO8601TimeZone:
+    	OneLetterISO8601TimeZone
+    	TwoLetterISO8601TimeZone
+    	ThreeLetterISO8601TimeZone
+    OneLetterISO8601TimeZone:
+    	Sign TwoDigitHours
+    	Z
+    TwoLetterISO8601TimeZone:
+    	Sign TwoDigitHours Minutes
+    	Z
+    ThreeLetterISO8601TimeZone:
+    	Sign TwoDigitHours : Minutes
+    	Z
+    ```
+
+
+
+Calendar类：
+
+抽象类，提供用于指定时间常量与日历字段集合之间的相互转换以及操纵日历字段的方法，其中日历字段包括：YEAR、MONTH、DAY_OF_MONTH、HOUR等，指定时间常量通常表示为到UTC纪元的毫秒数。
+
+还提供了一些附加的方法和字段用来在包外实现一个具体的日历系统，那些方法以及字段被设为protected。
+
+提供了工厂方法==getInstance==用来获得一个适用于一般情况的Calendar实例，这个实例使用当前的日期和时间初始化。
+
+Calendar对象能够实现任何语言或风格的日期和时间的格式化，Calendar类定义了特定日历字段的返回值取值范围以及表示意义。
+
+读写日历字段：
+
+通过set方法设置日历字段值，设置的值==不会立即被解释，而是等到需要计算毫秒值或日历字段值的时候再完成==，调用get、getTimeInMillis、getTime、add、roll等方法涉及到该计算过程。
+
+宽容模式（lenient）和严格模式（non-lenient）：
+
+在宽容模式中，允许设置超出范围的日历字段，这些字段在解释时会被标准格式化。例如，格里高利历法中的1月32日会被标准格式化为2月1日。在严格模式中，则不允许这样做，会在解释时抛出异常。
+
+第一个星期：
+
+使用两个参数定义特定于地区的星期：”一周的第一天“以及”第一周中最少的天数“（从1到7）。这些数值来自地区的资源文件或者地区对象本身。如果标示的地区值中包含“fw”或者“rg”等Unicode扩展，那么一周的第一天通过这些扩展指定。如果“fw”与“rg”都被指定，来自“fw”扩展的值优先于来自“rg”扩展的值。当然也可以通过set方法进行设置。
+
+设置或者获得WEEK_OF_MONTH或者WEEK_OF_YEAR字段时，Calendar对象必须定义月份或者年份的第一周作为引用点。==月份或者年份的第一周==是指：
+
+- 起始于`getFirstDayOfWeek()`
+- 7天连续的序列
+- 属于当月或当年的天数 >= `getMinimalDaysInFirstWeek()`
+
+第一周的前驱是第0周，第一周的后继是第二周。注意get方法返回的规范化编号可能不同，特定Calendar子类可以将第一周的前一周设为去年的第n周。
+
+日历字段的解析：
+
+如果给定的日期时间信息是不完整或者不一致的，将通过以下方式解决：
+
+如果出现任何冲突，按照==就近原则==处理，最近的字段组合更优先。默认的字段组合有：
+
+```
+//日期
+YEAR + MONTH + DAY_OF_MONTH
+YEAR + MONTH + WEEK_OF_MONTH + DAY_OF_WEEK
+YEAR + MONTH + DAY_OF_WEEK_IN_MONTH + DAY_OF_WEEK
+YEAR + DAY_OF_YEAR
+YEAR + DAY_OF_WEEK + WEEK_OF_YEAR
+//时间
+HOUR_OF_DAY
+AM_PM + HOUR
+```
+
+如果信息不完整，将使用字段默认值：在格里高利历法中，年份的默认值是1970，月份默认为0月，当月天数默认为1
+
+字段的操纵：
+
+==set方法==：设置日历字段，关联字段也会修改，但毫秒值的计算是延迟的，
+
+==add方法==：给日历字段添加增量，相当于调用set(f,get(f)+delta)。两条规则：1、对于任何溢出取模，并产生“进位”或“借位”现象；2、如果希望一个较小的字段不变，但是其他字段发生变化导致这个较小的字段的取值范围或约束发生变化，使得原有值不可能继续存在下去时，该字段的值会被调整至尽可能接近原有值。
+
+==roll方法==：类似于add方法，但是不会引起更高字段的变动，也就是没有“进位”与“借位”现象。
+
+==clear方法==：清空字段的值，设为默认值
+
+其他方法：
+
+==getTime方法==：获得对应Date对象
+
+
+
+System类简介：
+
+- 标准输入、标准输出、标准错误输出，以及重定向方法setErr、setIn、setOut
+- 数组拷贝方法：arraycopy
+- 获得当前时间的毫秒值：currentTimeMillis
+- JVM时钟纳秒值：nanoTime，提供了纳秒级的精确度，但是不能用来计时
+- 退出停用程序：exit
+- 返回垃圾回收器：gc
+- 环境变量：getenv
+- 系统属性：set/getProperty、set/getProperties、clearProperty
+- 获得文件系统分隔符：lineSepator
+
+
+
+## 对象与类
 
 访问控制类型：
 
@@ -700,6 +952,8 @@ assert cond: expr;
 ## 泛型
 
 泛型类：
+
+> 泛型参数不可以是基本类型，但可以是基本类型的数组类型
 
 ```java
 class Hello<T>{
@@ -2159,4 +2413,448 @@ ZIP文档：
 
 正则表达式（java.util.regex包）
 
-​                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                             
+## 函数式编程与Lambda表达式
+
+> 参考博文 https://blog.csdn.net/icarusliu/article/details/79495534
+
+函数式编程：面向对象过分强调以对象的形式做事情，而函数式思想则尽量忽略面向对象的复杂语法——==强调做什么，而不足以什么形式做==。只要能够获得结果就可以了，不在乎是谁完成的。
+
+冗余的Runnable代码：Thread类需要Runnable接口作为参数，其中run方法是用来指定线程任务内容的核心；为了指定run方法，不得不创建Runnable接口的实现类；为了省去创建实现类，不得不使用匿名内部类；必须覆盖run方法，并且保证方法名称、方法参数、方法的返回值一致；==而实际上，只有方法体才是真正关键所在==。                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                           
+
+使用Lambda表达式创建一个线程：
+
+```java
+public class Main{
+    public static void main(String[] args){
+        Thread t = new Thread(()->System.out.println("hello world"));
+        t.start();
+    }
+}
+```
+
+Lambda标准格式：
+
+```
+(参数列表) -> { 代码块 }
+```
+
+说明：三部分组成，参数、箭头、代码。参数、代码块的写法与普通方法一样，箭头表示指向。
+
+省略写法：
+
+- 如果参数类型可以推导出来，那么可以省略参数
+
+- 如果参数列表只有一个参数并且省略了类型，那么可以省略小括号
+
+- 如果代码块中只有一条语句，那么可以省略花括号和分号
+
+- 如果代码块中只有一条return语句，可以将代码块替换为return的表达式
+
+- 方法引用：方法引用是一种简洁的lambda表达式，提供了引用但不执行类或实例方法的手段。
+
+  ```
+  String::valueOf    静态方法
+  String::new        构造器
+  str::getBytes      实例方法
+  super::toString    父类方法
+  this::sayHello     本类方法
+  int[]::new         数组的构造器
+  
+  ```
+
+  
+
+
+
+函数式接口：
+
+1、==Runnable==：执行器，只有输入没有输出
+
+2、==Consumer==：消费者，只有一个输入参数，没有返回值。
+
+```java
+//执行f
+f.accept("123");
+//依次执行f、g、h
+f.andThen(g).andThen(h).accept("123");
+```
+
+3、==Function==：函数，有一个输入和一个输出
+
+```java
+Function<Double,Double> f = x->Math.sin(x);
+Function<Double,Double> g = Math::asin;
+//执行函数
+double result = f.apply(1.0);
+//复合函数，f(g(x))
+double result = f.compose(g).apply(1.0);
+//复合函数，g(f(x))
+double result = g.compose(f).apply(1.0);
+//标识函数，返回一个输入值与输出值相同的函数
+Map<Long, User> result = userList
+	.stream()
+    .collect(Collectors.toMap(User::getUid, Function.identity()));
+```
+
+4、==Predicate==：断定，有一个输入，输出为boolean类型
+
+```java
+Predicate<Integer> p1 = x->x>0;
+Predicate<Integer> p2 = x->x<10;
+boolean result = false;
+//执行
+result = p1.test(2);//2>0,true
+//取非
+result = p1.negate().test(2);//!(2>0),false
+//相与
+result = p1.and(p1).test(2);//2>0&&2<10,true
+//相或
+result = p1.or(p2).test(-2);//-2>0||2<10,true
+```
+
+5、==Supplier==：供应者，没有输入，只有一个输出
+
+```java
+Supplier<Integer> s = ()->new Random().nextInt();
+//只有一个方法get，调用函数接口
+System.out.println(s.get());
+```
+
+6、==BiConsumer、BiFunction、BiPredicate、BiSupplier==：具有两个输入参数
+
+7、为了简化语法，减少泛型参数的个数，提供了一些特化的接口。如：
+
+```
+XXXConsumer
+XXXFunction
+XXXToXXXFunction
+ToXXXFunction
+XXXPredicate
+XXXSupplier
+ToXXXBiFunction
+ObjXXXPredicate
+```
+
+8、==UnaryOperator==与==BinaryOperator==：继承自Function<T, T>与BiFunction<T, T, T>，返回值与参数类型相同
+
+
+
+Stream接口：
+
+Stream接口的Hello World用法：
+
+```java
+int sum = widgets.stream()
+                 .filter(w->w.getColor() == RED)
+                 .mapToInt(w::getWieght
+```
+
+Stream\<T\>接口用于对象流，IntStream、LongStream、DoubleStream等用于基本类型
+
+流水线（stream pipeline）：流操作组成流水线，包括==流水线源、中介操作、结束操作==。流是延迟计算的。
+
+- 流水线源：数组、集合、生成器、I/O Channel
+- 中介操作：0至多个，将一个流转换为其它流，例如filter过滤操作
+- 结束操作：得到结果，产生副作用，例如count或forEach
+
+在优化计算方面流的实现具有极大的自由度。例如，如果流实现能够证明不会影响最后的结果，那么它就能够自由地从流水线中省略操作或者整个阶段，从而省略行为参数的调用。这意味着行为参数的副作用不总是执行，也不应该被依赖，除非另有规定
+
+Collections与流水线的异同：功能上具有一定的相似性，区别在于：Collections侧重于对集合元素的高效管理与访问；流水线不提供直接访问和操纵元素的方法，而是侧重于声明性地描述源和在源上进行的聚合操作。如果提供的流操作中没有需要的功能，可以使用BaseStream接口的iterator和spliterator方法进行受控的遍历。
+
+除非流水线源被明确设计为线程安全的，否则==试图修改正在被查询的流水线源将会导致不确定或者错误的行为==。
+
+为了保证正确的行为，行为参数必须满足以下条件：
+
+- ==非介入==：不能修改流水线源
+- ==无主的==：绝大多数情况下，结果不应该依赖于流水线执行过程中状态的改变
+- ==非空的==：除非另外指定，行为参数是非空的
+
+一个流应该只被执行一次，如果一个流被多个流水线共享，就有可能在执行过程中因为==流重用==而抛出IllegalStateException。但是部分流操作可能返回其接收者而非一个新的流对象，所以可能无法在所有的情况下都检测到流重用。
+
+流有一个close方法并且实现了AutoClosable接口，如果在关闭之后操作一个流会抛出IllegalStateException。一般情况下无需关闭流，但是涉及IO的流需要关闭，可以采用带资源的try或者等价的操作方法。
+
+两种流水线执行模式：==顺序执行、并行==，分别使用stream方法和parallelStream方法获得两种模式的流对象，通过sequential和parallel方法进行修改执行模式，通过isParallel方法判断是否并行模式。
+
+获得流对象：
+
+- Stream.empty
+- Stream.of
+- Stream.iterate，第一个元素是seed，第n+1个元素是f.apply(第n个元素)
+- Stream.generate
+- 集合类、Arrays中的stream、parallelStream方法
+- Stream
+
+中介操作：
+
+- sequential：串行流
+- parallel：并行流
+- unordered：无序流
+- onClose：流关闭时会调用Runnable接口的run方法
+- close：关闭流
+- filter：过滤流
+- map、mapToXXX：一一映射
+- flatMap：一对多映射
+- distinct：去重
+- sorted：排序
+- peek：所有流元素执行副作用
+- limit：限制流元素个数
+- skip：抛弃若干流元素
+- takeWhile：返回最长命中序列
+- dropWhile：抛弃最长命中序列
+
+结束操作：
+
+- iterator：返回元素的迭代器
+- spliterator：返回元素的spliterator对象
+- forEach：迭代，无返回值
+- forEachOrdered：按Stream.Encounter所决定的序列迭代，无返回值
+- toArray：转数组
+- reduce：递推运算
+- collect：汇聚运算
+- max、min：求最值
+- count：计数
+- anyMatch：所有元素匹配结果相或
+- allMatch：所有元素匹配结果相与
+- noneMatch：anyMatch的结果取非
+- findFirst：返回第一个元素的Optional对象，
+- findAny：返回任意一个元素的Optional对象
+- isParallel：是并行模式吗
+
+
+
+Optional类：
+
+用于简化对空值的处理，对单个变量进行封装。
+
+使用静态方法创建：
+
+- empty
+- of
+- ofNullable
+
+实例方法：
+
+- get：获取值
+- isPresent：空值判断
+- ifPresent：非空执行Consumer操作
+- ifPresentOrElse：非空执行Consumer操作，空则执行Runnable的run方法
+- filter：过滤空值或不满足条件的值，返回Empty对象或原对象
+- map、flatMap：非空进行映射，否则返回Empty
+- stream：非空返回单个元素的流，否则返回Empty
+- or、orElse、orElseGet、orElseThrow：非空返回值，否则返回Supplier生成的Optional对象、传入的值、Supplier生成的值、抛出异常。
+
+
+
+## Java网络编程
+
+### 基本概念
+
+软件结构：
+
+- C/S结构：Client/Server
+
+- B/S结构：Browser/Server
+
+网络编程：在一定的协议下，实现两台计算机之间的通信。
+
+网络通信协议：计算机网络能够实现多条计算机的连接，位于同一个网络中的计算机进行连接和通信时需要遵守一定的规则，这些规则被称为网络通信协议，它对数据的传输格式、传输速率、传输步骤等做了统一规定，通信双方必须同时遵守才能完成数据的交换。
+
+TCP/IP协议：传输控制协议/因特网互联协议（Transmission Control Protocol / Internet Protocol），是互联网最基本、最基础的协议。定义了计算机如何连入互联网，以及数据如何在它们之间传输的标准。它的内部包含一系列用于处理数据通信的协议，并采用了4层的分层模型，下层为上层提供服务，上层使用下层的协议完成自己的需求。
+
+TCP/IP四层网络模型：
+
+- 应用层：主要负责应用程序的协议，包括HTTP、FTP、TFTP、SMTP、SNMP、DNS等
+- 传输层：主要使用网络程序进行通信，在进行网络通信时，可以采用TCP、UDP协议
+- 网络层：网络层是整个TCP/IP协议的核心，它主要用于将传输的数据进行分组，将分组数据发送到目标计算机或者网络，IP协议是运行在网络层的协议，IP协议的配套协议有ICMP、IGMP、ARP、RARP
+- 数据链路层和物理层：由底层网络定义的协议
+
+
+
+协议分类：
+
+UDP：用户数据报协议，面向无连接、不保证可靠交付、面向报文、支持多对多通信、首部开销小
+
+TCP：传输控制协议，面向连接、点对点、可靠交付、全双工通信、面向字节流
+
+- 传输连接有三个阶段，即：连接建立、数据传送、连接释放。其中连接建立的过程被概括为三次握手，释放连接的过程被概括为四次挥手。
+
+- 三次握手：
+
+  - 第一次握手：客户端向服务端发起连接请求，等待服务器确认
+  - 第二次握手：服务端向客户端发送一个响应，通知客户端收到了连接请求
+  - 第三次握手：客户端向服务端再次发送确认信息，确认连接
+
+  ![1581570310718](Java语言学习笔记.assets/1581570310718.png)
+
+- 四次挥手：
+
+  - 第一次挥手：客户端主动开始关闭，向服务端发送释放连接报文段，并停止再发送数据
+  - 第二次挥手：服务端收到释放连接报文段，通知高层应用进程，从客户端到服务端的连接被释放，TCP连接处于半关闭状态。服务端向客户端发送确认报文段。
+  - 第三次挥手：服务端被动开始关闭，向客户端发送释放连接报文段，通知客户端释放连接
+  - 第四次挥手：客户端向服务端发送确认报文段，等待2MSL（2倍报文最长存活时间）完成关闭。服务端收到确认报文段后完成关闭。
+
+  ![1581570375648](Java语言学习笔记.assets/1581570375648.png)
+
+
+
+网络编程要素：
+
+- 协议
+- IP地址：互联网协议地址（Internet Protocol Address），俗称IP，IP地址用来在互联网中唯一标识计算机。IP地址分为IPv4和IPv6。常用命令ipconfig、ping
+- 端口号：计算机网络通信的实质是进程的通信，网络通信时通过端口号唯一标识通信的进程。端口号用2个字节表示，取值范围是0-65535，其中0-1023端口是系统端口，后面的端口可以被普通的应用程序使用。常用的端口号：80、3306、1521、8080
+
+### TCP通信程序
+
+TCP通信能够实现两台计算之间的数据交互，要严格区分为客户端与服务端
+
+通信步骤：
+
+1、服务端程序，需要事先启动，等待客户端的连接
+
+2、客户端主动连接服务端，连接成功才能通信，服务端不可以主动连接客户端。客户端与服务端建立一个逻辑连接，而这个连接中包含一个对象，这个对象就是IO对象，客户端与服务端就可以使用IO对象进行通信。通信的数据不仅仅是字符，所以这个IO对象是字节流对象。
+
+Java语言中提供了两个类用于实现TCP通信程序：
+
+1、客户端：java.net.Socket类表示，创建Socket对象，向服务端发出连接请求，服务端响应请求，两者建立连接开始通信。
+
+2、服务端：java.net.ServerSocket类表示，创建ServerSocket对象，相当于开启一个服务，并等待客户端的连接。
+
+Socket通信模式：
+
+![1581576916120](Java语言学习笔记.assets/1581576916120.png)
+
+客户端实现步骤：
+
+1、创建一个客户端对象Socket，构造方法绑定服务器的IP地址和端口号
+
+2、使用Socket对象中的方法getOutputStream()获取网络字节输出流OutputStream对象
+
+3、使用网络字节输出流OutputStream对象中的方法write，给服务器发送数据
+
+4、使用Socket对象中的方法getInputStream()获取网络字节输入流InputStream对象
+
+5、使用网络字节输入流InputStream中的方法read读取服务器回写的数据
+
+6、释放资源
+
+服务端实现步骤：
+
+1、创建服务器serverSocket对象和系统要指定的端口
+
+2、使用serverSocket对象中的方法accept，获取到请求的客户端对象socket
+
+3、使用socket对象中的方法getInputStream()获取网络字节输入流InputStream对象
+
+4、使用网络字节输入流InputStream对象中的方法read，读取客户端发送的数据
+
+5、使用Socket对象中的方法getOutputStream()获取网络字节输出流OutputStream
+
+6、使用网络字节输出流OutputStream对象中的方法write，给客户端回写数据
+
+7、释放资源（socket、serverSocket）
+
+```java
+//TCPClient.java
+public class TCPClient {
+    public static void main(String[] args) throws Exception {
+        try(Socket socket = new Socket("127.0.0.1",6666);
+            OutputStream out = socket.getOutputStream();
+            InputStream in = socket.getInputStream()){
+            out.write("hello world".getBytes());
+            byte[] bytes = new byte[1024];
+            in.read(bytes);
+            System.out.println(new String(bytes));
+        }
+    }
+}
+//TCPServer.java
+public class TCPServer {
+    public static void main(String[] args) throws Exception{
+        try(ServerSocket serverSocket = new ServerSocket(6666)){
+            Socket socket = serverSocket.accept();
+            try(InputStream in = socket.getInputStream();
+                OutputStream out = socket.getOutputStream()){
+                byte[] bytes = new byte[1024];
+                in.read(bytes);
+                System.out.println(new String(bytes));
+                out.write("Message Received".getBytes());
+            }
+        }
+    }
+}
+```
+
+文件上传实例：
+
+```java
+//TCPServer.java
+public class TCPServer {
+    public static void main(String[] args) throws Exception{
+        try(ServerSocket serverSocket = new ServerSocket(6666)){
+            Socket socket = serverSocket.accept();
+            try(InputStream in = socket.getInputStream();
+                OutputStream out = socket.getOutputStream()){
+                String filename = UUID.randomUUID()+".txt";
+                Path path = Paths.get("C:/Users/lenovo/Desktop/",filename);
+                Files.copy(in,path);
+                System.out.println("文件上传成功");
+                out.write("文件上传成功".getBytes());
+            }
+        }
+    }
+}
+//TCPClient.java
+public class TCPClient {
+    public static void main(String[] args) throws Exception {
+        try(Socket socket = new Socket("127.0.0.1",6666);
+            InputStream in = socket.getInputStream();
+            OutputStream out = socket.getOutputStream()){
+            Path path = Paths.get("C:/Users/lenovo/Desktop/hello.txt");
+            Files.copy(path,out);
+            //在输出流中加入结束标记EOF，并关闭输出流
+            //防止服务端read方法发生阻塞
+            socket.shutdownOutput();
+            byte[] bytes = new byte[1024];
+            in.read(bytes);
+            System.out.println(new String(bytes));
+        }
+    }
+}
+```
+
+文件上传案例的优化：
+
+1、使用UUID、系统时间、随机数实现上传文件的命名
+
+2、使用多线程技术使得服务端可以一直保持监听
+
+简单模拟HTTP服务器：
+
+```java
+public class Main {
+    public static void get(Socket socket) {
+        try (InputStream in = socket.getInputStream();
+             OutputStream out = socket.getOutputStream();
+             Scanner scanner = new Scanner(in)) {
+            String firstLine = scanner.nextLine();
+            String[] firstLineItems = firstLine.split(" ");
+            assert firstLineItems.length >= 2;
+            String url = firstLineItems[1];
+            Path path = Paths.get("C:/Users/lenovo/Desktop", url);
+            out.write("HTTP/1.1 200 OK\r\nContent-Type:text/html\r\n\r\n".getBytes());
+            Files.copy(path, out);
+        }catch(Exception e){
+            e.printStackTrace();
+        }
+    }
+    public static void main(String[] args) throws Exception{
+        try (ServerSocket serverSocket = new ServerSocket(8080)) {
+            while(true){
+                Socket socket = serverSocket.accept();
+                new Thread(()->Main.get(socket)).start();
+            }
+        }
+    }
+}
+```
+
