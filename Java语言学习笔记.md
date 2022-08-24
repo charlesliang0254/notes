@@ -394,7 +394,39 @@ Java使用extends关键字完成类的继承，且仅支持单继承，被继承
 
 > 区别覆盖与重载
 
-多态：变量引用多种实际类型的对象，超类变量可以引用子类对象，超类变量必须强转才能赋值给子类变量
+多态：变量引用多种实际类型的对象，超类变量可以引用子类对象，超类变量必须强转才能赋值给子类变量。如果子类重写了超类的方法，那么使用超类变量调用的是子类重写的方法，而不是超类的方法。但是，属性没有重写的概念，如果超类和子类有同名属性，使用超类变量调用的属性仍旧是超类的属性。
+
+```java
+class A{
+    public String str = "parent";
+    public void say(){
+        System.out.println("hello");
+    }
+    public void talk(){
+        System.out.println("hi");
+    }
+}
+
+class B extends A{
+    public String str = "child";
+    public void say(){
+        System.out.println("world");
+    }
+}
+
+public class Main{
+    public static void main(String[] args){
+        A a = new B();
+        a.say();//方法具有多态，动态绑定
+        a.talk();
+        System.out.println(a.str);//属性不具有多态，静态绑定，所以是parent
+        B b = (B)a;
+        System.out.println(b.str);//属性不具有多态，静态绑定，所以是child
+        a = (B)a;
+        System.out.println(a.str);//属性不具有多态，静态绑定，所以是parent
+    }
+}
+```
 
 > 子类数组可以隐式转换为超类数组，必须牢记数组元素的实际类型
 
@@ -496,7 +528,7 @@ public enum Size{
 - 所有枚举都是Enum的子类
 - Enum的常见方法：toString、valueOf、values、ordinal
 
-### 反射
+### 反射与注解
 
 反射：能够分析类能力的程序称为反射
 
@@ -562,6 +594,33 @@ public class Main{
 }
 ```
 
+
+
+
+
+注解：相当于一种标记，为程序代码的各个结构添加标记，javac编译器、开发工具、其它程序就能通过标记的内容决定不同的处理。
+
+标记可以添加在包、类、属性、方法、方法的参数、局部变量上
+
+注解的应用层次：
+
+```java
+//注解类
+public @interface A{
+    
+}
+
+//应用了注解类的类
+@A
+public class B{
+    
+}
+
+//
+```
+
+
+
 ### 接口与内部类
 
 接口
@@ -569,7 +628,7 @@ public class Main{
 - 接口不是类，是对类的一组需求描述，对类的格式进行约束
 - 接口不能实例化，只能被实现类实现，一个类可以实现多个接口
 - 接口没有实例域，所有域自动被public static final修饰，一般没有方法的实现。但java 8新特性允许使用default关键字定义方法的默认实现，允许使用static关键字定义静态方法。default方法可以调用接口的其他方法。
-- 接口之间可以相互继承
+- 接口之间可以相互继承，子接口可以继承多个父接口
 - 接口的实现类必须实现接口的所有非default方法，否则必须声明为abstract
 - 接口方法修饰符只能是public，不能是private、final
 - 接口不允许定义构造器和初始化块
@@ -1380,6 +1439,29 @@ finally{
     mylock.unlock();//把解锁语句放在finally子句中是至关重要的，否则可能会导致死锁
 }
 ```
+
+Java锁的总结：
+
+- 公平锁与非公平锁：公平锁是指按照申请的顺序依次获得锁，而非公平锁不是这样的。Java语言中的ReentrantLock可以指定该锁是否公平锁，synchronized是一种非公平锁
+
+- 可重入锁：同一个线程在外层获得锁的时候，进入内层会自动获得锁。Java的ReentrantLock以及synchronized都是可重入锁。
+
+  ```java
+  synchronized void fun1(){
+      Thread.sleep();
+      fun2();
+  //如果synchronized不是可重入锁，那么fun1中就调用fun2就会死锁
+  ```
+
+- 独享锁与共享锁：独享锁只能被一个线程使用，共享锁被多个线程共享。ReentrantLock是独享锁，而ReadWriteLock是共享锁
+
+- 互斥锁与读写锁：互斥锁与读写锁就是独享锁和共享锁的具体实现，独享锁在Java中的实现就是ReentrantLock，而共享锁在Java中的实现就是ReadWriteLock
+
+- 乐观锁与悲观锁：乐观锁认为线程不一定会修改数据的值，因此只在更新数据的时刻加锁；悲观锁认为线程很可能会修改数据，因此在操作开始就加锁。乐观锁适用于读操作比较多的情景中，悲观锁适用于写操作比较多的情景中。
+
+- 分段锁：一种锁的设计方法，而并不是一种具体的锁，在HashTable中采用的是整段锁，因此同一时刻只能有一个线程访问HashTable，而ConcurrentHashMap中则使用分段锁，也就是不对整段进行封锁，而是将Map分为若干个段，分段加锁，不同分段可以实现并发访问，提高了效率。
+
+- 偏向锁、轻量级锁和重量级锁：针对synchronized的。偏向锁是指同一段代码一直被一个线程所访问，那么该线程会自动获得锁，降低获得锁的代价。轻量级锁是指当锁是偏向锁的时候，被另一个线程访问，偏向锁就升级为轻量级锁，其他线程就会通过自旋（while循环忙等）的方式尝试获得锁，而不是阻塞。重量级锁2是指当锁为轻量级锁的时候，另一个线程虽然是自旋，但自旋并不是一直持续下去的，当自旋一定次数的时候，还没有获得锁，锁就会膨胀为重量级锁，让其他申请的线程进入阻塞状态，性能降低。
 
 条件对象（条件变量，Condition）：
 
@@ -2609,8 +2691,8 @@ Collections与流水线的异同：功能上具有一定的相似性，区别在
 - forEach：迭代，无返回值
 - forEachOrdered：按Stream.Encounter所决定的序列迭代，无返回值
 - toArray：转数组
-- reduce：递推运算
-- collect：汇聚运算
+- reduce：递推运算，传入(old,x)->{...}
+- collect：汇聚运算，（1）传入参数supplier（提供容器），accumulator（累计器，数据与容器之间的操作），combiner（将多个supplier提供的容器进行合并）（2）传入Collector，Collectors中提供了很多Collector
 - max、min：求最值
 - count：计数
 - anyMatch：所有元素匹配结果相或
@@ -2620,7 +2702,50 @@ Collections与流水线的异同：功能上具有一定的相似性，区别在
 - findAny：返回任意一个元素的Optional对象
 - isParallel：是并行模式吗
 
+Collectors的方法：
 
+- toList：将流元素封装为List
+
+- toMap：得到一个映射，传入的参数有Key映射器，Value映射器，merger，提供容器的Supply。merge方法使用Map的merge，作用是将满足条件的多个元素的值进行计算后合并。
+
+  ```java
+  Map<Integer,Integer> res = Stream.of(0,1,2,3,4,5,6,7,8,9,10,11)
+      .collect(Collectors.toMap(
+      	x->x%3,//Key的映射器
+          x->x,//value的映射器
+          (old,x)->old+x,//相同的键的值进行合并的递推式，表示old=a1,old=f(old,a2),old=f(old,a3)...
+          TreeMap::new
+      ));
+  ```
+
+- toSet：将流元素封装为Set
+
+- joining：字符串的拼接，传入分隔符、前后缀等参数
+
+- mapping：先对元素进行映射，使用传入的Collector进行收集
+
+- collectingAndThen：先使用传入的Collector收集，再对结果进行处理
+
+- counting：计数
+
+- minBy/maxBy：获得最值的Optional对象
+
+- averagingXXX：先进行映射，再求平均数
+
+  ```java
+  Int result = Stream.of("hello","world","good","morning")
+      .averagingInt(String::length);//求字符串的平均长度
+  ```
+
+- summerizingXXX：进行统计分析，返回的结果中包含数量、和、最值、均值
+
+- summingXXX：先进行映射，再进行求和
+
+- reducing：类似与Stream中的reduce方法
+
+- groupingBy：根据传入的函数返回值作为依据进行分组
+
+- partitioningBy：根据某个条件进行二元划分，返回键值为Boolean，值为List的集合
 
 Optional类：
 
@@ -2857,4 +2982,113 @@ public class Main {
     }
 }
 ```
+
+## Java设计模式
+
+GOF23设计模式：
+
+- 创建型模式：单例模式、工厂模式、抽象工厂模式、建造者模式、原型模式
+- 结构性模式：适配器模式、桥接模式、装饰模式、外观模式、享元模式、代理模式
+- 行为型模式：模板方法模式、命令模式、迭代器模式、观察者模式、中介者模式、备忘录模式、解释器模式、状态模式、策略模式、职责链模式、访问者模式
+
+### 单例模式
+
+【作用】保证一个类只能有一个实例，提供该实例的全局访问点
+
+【实现】
+
+1、饿汉式：
+
+单例对象在类加载时创建
+
+实现方法：在static成员中进行初始化+私有构造器+getInstance方法
+
+如果只是加载而没有使用，就会造成系统资源的浪费
+
+2、懒汉式：
+
+单例对象在调用getInstance方法的时候创建
+
+实现方法：定义static变量，私有构造器，在getInstance方法中判断，如果static变量为空，则创建实例并引用之，返回该变量。注意，getInstance方法要同步
+
+3、双重检测锁实现：
+
+```java
+public class A{
+    private static A inst = null;
+    public static A getInstance(){
+        if(inst==null){
+            A a;
+            synchronized(A.class){
+                a=inst;
+                if(a==null){
+                    synchronized(A.class){
+                        if(a==null){
+                            a=new A();
+                        }
+                    }
+                    inst=a;
+                }
+            }
+        }
+        return inst;
+    }
+    public A(){}
+}
+```
+
+将同步内容下放到if内部，提高了执行效率，只有第一次创建对象时才进行同步
+
+由于编译器优化的原因和JVM底层内部模型原因，偶尔会出问题，不建议使用。
+
+4、静态内部类（也是一种懒加载）
+
+```java
+public class A{
+    private static class AInstance{
+        private static final A instance = new A();
+    }
+    
+    public static A getInstance(){
+        return AInstance.instance;
+    }
+    
+    private A(){}
+}
+
+```
+
+懒加载、线程安全、兼顾高效调用与延迟加载
+
+5、使用枚举实现单例模式
+
+```java
+public enum A{
+    //定义一个枚举的元素，代表了A的一个实例
+    INSTANCE;
+    public void AOperation(){
+        //功能处理
+    }
+}
+```
+
+
+
+【单例模式的破解】
+
+1、反射调用私有的构造方法
+
+2、反序列化实现对象深拷贝，可以通过定义readResolve方法防止获得不同对象
+
+### 工厂模式
+
+种类：简单工厂模式、工厂方法模式、抽象工厂模式
+
+核心本质是用工厂方法代替new操作
+
+简单工厂模式：在工厂对象中使用静态方法返回创建的对象
+
+工厂方法模式：工厂方法模式与简单工厂模式的最大区别就是工厂方法模式有一组实现了相同接口的工厂类，返回的对象也是实现了统一接口的对象。
+
+抽象工厂模式：工厂类实现了统一的接口，可以生产n种产品，每种产品对应一个接口，可以有多种实现。
 

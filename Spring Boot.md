@@ -1,4 +1,6 @@
-# **一、**Spring Boot 入门
+[TOC]
+
+# 一、Spring Boot 入门
 
 ## 1、Spring Boot 简介
 
@@ -4187,13 +4189,545 @@ https://github.com/spring-projects/spring-boot/tree/master/spring-boot-samples
 
 
 
+<h1>Spring Boot补充笔记</h1>
+# lombok学习笔记
 
+1、引入依赖：在创建Spring Boot项目的时候添加lombok支持，或者在maven中添加lombok的依赖项。
 
+2、给IDEA添加lombok支持：打开设置（Settings），在插件市场中搜索并安装lombok，在注解处理器（annotation processor）中开启注解处理
 
+3、实现原理：实现JSR 269 API，修改抽象语法树，然后再生成字节码文件
 
+4、使用方法：
 
+@Getter/@Setter：作用在类上，生成所有字段的getter、setter；作用在字段上，生成单个字段的getter、setter；可以指定访问控制类型、懒加载
 
+@ToString：作用在类上，可以通过of属性显示某些字段，通过exclude属性排除某些字段	
 
+@EqualsAndHashcode：重写equals和hashcode方法
 
+@NonNull：作用于成员变量和参数中，表示不能为空，否则抛出空指针异常
 
+@NoArgsConstructor, @RequiredArgsConstructor, @AllArgsConstructor：作用于类上，用于生成构造方法。有staticName、access等属性。三个注解分别表示无参构造器、包含final和NonNull字段的构造器、全参构造器
+
+@Data：作用于类上，是以下注解的集合：@ToString、@EqualsAndHashcode、@Getter、@Setter、@RequiredArgsConstructor
+
+@Builder：作用于类上，将类转变为建造者模式
+
+```java
+User user = User.builder()
+    .username("ljh")
+    .password("123")
+    .uid(123L).build();
+```
+
+@Log：作用于类上，生成日志变量。针对不同的日志实现产品，有不同的注解
+
+@Cleanup：自动关闭资源，针对实现了Closeable接口的对象有效
+
+@SneakyThrows：可以对受检异常进行捕捉并抛出
+
+# Spring Security
+
+## Spring Security实战部署
+
+> 参考@不懂是非 https://www.cnblogs.com/qm-article/p/10388166.html
+
+### 数据库关系模式
+
+用户：<span style="text-decoration:underline;">用户ID</span>、用户名、密码
+
+角色：<span style="text-decoration:underline;">角色ID</span>、角色名、角色描述
+
+权限：<span style="text-decoration:underline">权限ID</span>、权限名、URL路径
+
+用户-角色中间表：<span style="text-decoration:underline;">用户ID</span>、<span style="text-decoration:underline;">角色ID</span>
+
+角色-权限中间表：<span style="text-decoration:underline;">角色ID</span>、<span style="text-decoration:underline;">权限ID</span>
+
+### Spring Security的示例程序
+
+实现WebSecurityConfigurerAdapter接口，并在Spring上下文中注册组件
+
+注入以下依赖：
+
+- UserDetailsService接口：从数据库或者其他地方获得用户信息，注入PasswordEncoder的组件依赖，对原始密码进行解密
+- AuthenticationSuccessHandler接口：认证成功事件处理器
+- AuthenticationFailureHandler接口：认证失败事件处理器
+- AccessDeniedHandler接口：访问拒绝事件处理器
+- AccessDecisionManager接口：访问决策管理器，判断登录的用户是否具有能够访问当前路径的角色
+- FilterInvocationSecurityMetadataSource接口：这个接口用来查看满足给定请求的有哪些角色
+- AuthenticationProvider接口：认证提供者，提供用户密码的认证。注入UserDetailsService的组件依赖，从数据库或其他位置获得给定用户的用户名和密码。
+- PasswordEncoder接口：密码的编码和解码器，可以对原始密码使用md5、sha等算法进行处理
+
+WebSecurityConfigurerAdapter接口方法：
+
+```java
+/**
+     * 对授权管理器的建造者进行配置
+     *
+     * @param auth 授权管理器的建造者
+     * @throws Exception 抛出异常
+     */
+@Override
+protected void configure(AuthenticationManagerBuilder auth) throws Exception {
+    //为授权管理器指定UserDetailsService组件，该组件用来从数据库中获得用户登录信息
+    auth.userDetailsService(userDetailsService)
+        //为UserDetailsService组件提供密码的编码器，能够对原始密码进行MD5、SHA等类似操作
+        .passwordEncoder(passwordEncoder);
+    //为授权管理器提供自定义的认证，AuthenticationProvider接口提供了认证的方法
+    auth.authenticationProvider(authenticationProvider);
+}
+
+/**
+     * 用来配置WebSecurity对象，例如想要忽略登录、注册等模块
+     *
+     * @param web
+     * @throws Exception
+     */
+@Override
+public void configure(WebSecurity web) throws Exception {
+    //配置忽略的路径，例如登录、注册模块需要对外开放
+    web.ignoring().antMatchers("/index.html", "/favicon.ico");
+}
+
+/**
+     * 用来对HTTP请求进行认证处理，使用建造者模式。
+     *
+     * @param http
+     * @throws Exception
+     */
+@Override
+protected void configure(HttpSecurity http) throws Exception {
+    //1、为HTTP安全对象添加CSRF支持
+    http.csrf()
+        .disable()
+        //2、配置请求的权限校验
+        .authorizeRequests()
+        .withObjectPostProcessor(new ObjectPostProcessor<FilterSecurityInterceptor>() {
+            @Override
+            public <O extends FilterSecurityInterceptor> O postProcess(O o) {
+                //注入AccessDecisionManager，用来验证登录，判断登录的用户是否具有允许访问的角色
+                o.setAccessDecisionManager(urlAccessDecisionManager);
+                //注入SecurityMetadataSource，用来分析请求的路径允许哪些角色访问
+                o.setSecurityMetadataSource(urlPathFilterInvocationSecurityMetadataSource);
+                return o;
+            }
+        })
+        .anyRequest().authenticated()// 没有匹配的URL需要进行认证
+        .and()
+
+        //3、开启登录，可自定义登录路径，否则使用默认值
+        .formLogin()
+        .successHandler(successAuthenticationHandler)//注入登录成功处理器
+        .failureHandler(failureAuthenticationHandler)//注入登录失败处理器
+        .permitAll()//固定的放行操作
+        .and()
+
+        //4、开启注销，可自定义注销处理器，否则使用默认处理器
+        .logout()
+        .logoutUrl("/logout")//设置注销路径
+        .permitAll()// 固定的放行操作
+        .and()
+
+        //5、开启访问异常处理
+        .exceptionHandling()
+        .accessDeniedHandler(authenticationAccessDeniedHandler);//添加访问拒绝处理器
+}
+```
+
+FilterInvocationSecurityMetadataSource接口方法：
+
+```java
+@Autowired
+private SysPermissionRepository sysPermissionRepository;
+@Autowired
+private SysRoleRepository sysRoleRepository;
+private AntPathMatcher antPathMatcher = new AntPathMatcher();
+@Override
+public Collection<ConfigAttribute> getAttributes(Object o) throws IllegalArgumentException {
+    log.debug("执行FilterInvocationSecurityMetadataSource的getAttributes方法："+o);
+    FilterInvocation filterInvocation = (FilterInvocation) o;//过滤器调用
+    String requestUrl = filterInvocation.getRequestUrl();//请求的URL
+    List<SysPermission> authorities = sysPermissionRepository.findAll();//查出所有权限
+    List<SysRole> roles = authorities.stream()
+        .filter(item -> antPathMatcher.match(item.getUrlPath(), requestUrl))//匹配请求路径的权限
+        .map(SysPermission::getPid)//映射为权限ID
+        .map(sysRoleRepository::findAllByPid)//映射为具备权限的角色集合
+        .filter(item -> !item.isEmpty())//过滤空值
+        .findFirst().orElse(null);//查找第一个角色集合
+    if (roles == null) {//查找失败
+        return SecurityConfig.createList("ROLE_LOGIN");//默认角色
+    }
+    else{//查找成功
+        return SecurityConfig.createList(roles.stream()
+            .map(SysRole::getRoleName)
+            .toArray(String[]::new));//返回有访问权限的角色集合
+    }
+}
+```
+
+AccessDecisionManager接口方法：
+
+```java
+@Override
+public void decide(Authentication authentication, Object o, Collection<ConfigAttribute> collection)
+    throws AccessDeniedException, InsufficientAuthenticationException {
+    log.debug("执行AccessDecisionManager的decide方法");
+    for(ConfigAttribute ca:collection){
+        String needRole = ca.getAttribute();
+        log.debug("needRole = "+needRole);
+        if("ROLE_LOGIN".equals(needRole)){
+            if(authentication instanceof AnonymousAuthenticationToken){
+                log.debug("没有登录");
+                throw new BadCredentialsException("没有登录");
+            }
+            else {
+                log.debug("角色匹配失败");
+                break;
+            }
+        }
+        if(authentication.getAuthorities().stream()
+           .map(GrantedAuthority::getAuthority)//当前用户的角色
+           .anyMatch(item-> Objects.equals(item,needRole))
+          ){
+            log.debug("角色匹配成功");
+            return;
+        }
+
+    }
+    log.debug("没有访问权限");
+    throw new AccessDeniedException("权限不足");
+}
+```
+
+AuthenticationProvider接口：
+
+```java
+@Override
+public Authentication authenticate(Authentication authentication) throws AuthenticationException {
+    String username = (String) authentication.getPrincipal();
+    String password = (String) authentication.getCredentials();
+    UserDetails userDetails = userDetailsService.loadUserByUsername(username);
+    if(!Objects.equals( password, userDetails.getPassword() )){
+        throw new BadCredentialsException("用户名或密码不正确");
+    }
+    return new UsernamePasswordAuthenticationToken(username,password,userDetails.getAuthorities());
+}
+```
+
+# Maven
+
+## Maven
+
+maven的功能：构建、文档生成、报告、依赖、SCMs、发布、分发、邮件列表
+
+maven的约定配置：
+
+```
+- src
+  - main
+    - java
+    - resources
+    - webapp
+      - WEB-INF
+  - test
+    - java
+    - resources
+- target
+  - classes
+  - test-classes
+```
+
+maven的特点：约定大于配置，配置大于编码；任意工程中共享；依赖管理包括自动更新；一个庞大且不断增长的库；可扩展；基于模型的构建；项目信息一致性站点；发布管理和发布单独的输出；向后兼容性；并行构建；更好的错误报告
+
+构建：以Java源文件、构建配置文件、JSP、HTML、图片等资源为原材料，去生产一个可以运行项目的过程。
+
+- 生产、部署、搭建等含义
+- 编译：.java -> .class -> jvm执行
+- 部署：BS项目不能直接运行，必须经过部署才能成为运行的项目。对于Web项目来说，编译完成之后，还要把编译的结果放到Web服务器指定的目录下，然后再启动服务器。这个放置的过程就是部署。
+
+> 出现在项目中却并不在项目目录下的jar包等依赖统称为运行时环境
+
+构建过程的几个主要环节：
+
+- 清理  删除以前的编译结果，为重新编译做好准备
+- 编译  将Java源程序编译为字节码文件的过程
+- 测试  针对项目中的关键点进行测试，确保项目在迭代开发过程中，关键点的正确性
+- 报告  在每一次测试之后以标准的格式记录和展示测试结果
+- 打包  将一个包含诸多文件的工程封装为一个压缩文件用于安装或部署，Java工程对应jar包，Web项目对应war包
+- 安装  将打包得到的文件复制到仓库中的指定位置
+
+自动化构建：设计程序代人工进行编译、打包、部署、测试，从而将开发人员从繁琐的构建工作中解脱出来
+
+## maven的安装与配置
+
+maven的安装：
+
+1、确保正确安装了JDK，并配置了JAVA_HOME环境变量
+
+2、下载maven安装包并解压至任意路径
+
+3、配置环境变量，将maven的bin目录全路径添加到Path环境变量中
+
+4、使用mvn -v命令验证安装是否成功
+
+修改本地仓库：
+
+1、默认仓库位置：`~\.m2\repository`
+
+2、指定本地仓库的位置
+
+3、指定仓库镜像
+
+## maven pom
+
+pom = project object model，maven工程最基本的工作单元，包含了项目的基本信息
+
+pom中可以指定以下配置：项目依赖、插件、执行目标、项目构建profile、项目版本、项目开发者列表、相关邮件列表信息
+
+一个典型的POM文件
+
+```xml
+<project xmlns = "http://maven.apache.org/POM/4.0.0"
+    xmlns:xsi = "http://www.w3.org/2001/XMLSchema-instance"
+    xsi:schemaLocation = "http://maven.apache.org/POM/4.0.0
+    http://maven.apache.org/xsd/maven-4.0.0.xsd">
+ 
+    <!-- 模型版本 -->
+    <modelVersion>4.0.0</modelVersion>
+    <!-- 公司或者组织的唯一标志，并且配置时生成的路径也是由此生成， 如com.companyname.project-group，maven会将该项目打成的jar包放本地路径：/com/companyname/project-group -->
+    <groupId>com.companyname.project-group</groupId>
+ 
+    <!-- 项目的唯一ID，一个groupId下面可能多个项目，就是靠artifactId来区分的 -->
+    <artifactId>project</artifactId>
+ 
+    <!-- 版本号 -->
+    <version>1.0</version>
+</project>
+```
+
+所有pom文件都需要project元素和三个必需字段：
+
+- project：工程的根标签
+- modelVersion：模型版本需要设置为4.0
+- groupId：一般为组织网址的倒写
+- artifactId：工程的标识，通常是工程的名称
+- version：工程的版本号
+
+父POM：
+
+父POM是maven默认的pom，所有的pom都继承自同一个父POM（无论是否显式定义了这个父POM）。因此，当maven发现需要下载POM中的依赖时，会到父POM定义的默认仓库去下载。
+
+Maven使用effective pom来执行，它帮助开发者在pom.xml中做尽量少的配置，当然这些配置都可以被重写。
+
+使用以下命令查看super pom的配置：
+
+```
+mvn help:effective-pom
+```
+
+POM标签的详细介绍：
+
+- project：整个pom文件的根标签
+- parent：配置父POM，包括父POM的groupId、artifactId、version，还可通过relativePath指定父POM文件的位置
+- modelVersion：指定POM模型的版本，一般为4.0.0
+- groupId、artifactId、version、packaging：唯一标识一个maven项目，其中packaging规定了项目的打包方式，如jar、war和pom等
+- issueManagement：项目的问题管理系统
+- ciManagement：项目持续集成信息
+- inceptionYear：项目创建的年份
+- developers：项目的开发者
+- contributors：项目的其他贡献者
+- licenses：项目的许可证列表
+- scm：source control management
+- organization：组织信息
+- build：构建项目所需要的信息：
+    - sourceDirectory：项目源代码目录，默认为src/main/java
+    - scriptSourceDirectory：项目脚本源码目录，该目录与源码目录不同，绝大多数情况下会被拷贝到输出目录，默认为src/main/scripts
+    - testSourceDirectory：项目单元测试源代码目录，默认为src/test/java
+    - outputDirectory：被编译过的应用程序class文件的存放目录，默认为target/classes
+    - testOutputDirectory：被编译过的单元测试class文件的存放目录，默认为target/test-classes
+    - extensions：使用来自该项目的一系列构建扩展
+    - defaultGoal：当项目没有规定目标时的默认值
+    - resources：项目相关所有资源路径列表
+        - resource：描述了项目相关或测试相关的所有资源列表
+            - targetPath：描述了资源的目标相对路径，相对于outputDirectory
+            - filtering：是否使用参数值替代参数名，参数值取自properties标签或文件中配置的属性文件在filters元素里列出
+            - directory：描述存放资源文件的目录，该路径相对于pom.xml文件
+            - includes：包含的模式列表
+            - excludes：排除的模式列表
+    - testResources：项目测试相关所有资源路径列表，具体内容同resources
+    - directory：构建产生的所有文件的存放目录，默认为target
+    - finalName：产生的构建的文件名，默认为`${artifactId}-${version}`
+    - filters：当filtering属性打开时，使用到的所有过滤器属性文件列表
+    - pluginManagement：子项目可以引用的默认插件信息
+        - plugins：使用的插件列表
+            - plugin：描述一个插件的信息
+                - groupId、artifactId、version
+                - extensions
+                - executions：在构建生命周期中，执行一组目标的配置
+                    - execution：包含了插件执行所需要的信息
+                        - id：执行目标的标识符
+                        - phase：绑定了目标的构建生命周期阶段
+                        - goals：配置的执行目标
+                        - inherited：配置是否传播到子POM
+                        - configuration：作为POM对象的配置
+                - dependencies：项目引入插件所需要的额外依赖
+                - inherited：任何配置是否被传播到子项目
+                - configuration：作为POM对象的配置
+    - plugins：本项目使用的插件列表
+- profiles：在列的项目构建profile，如果被激活，会修改构建处理
+    - profile
+        - id：构建配置的唯一标识符
+        - activation：自动触发profile的条件逻辑，activation是profile的开启钥匙。profile的力量来源于它能够在某些特定的环境中自动使用某些特定的值；这些环境通过activation元素指定，但并不是激活profile的唯一方法
+            - activationDefault：profile是否被默认激活的标志
+            - jdk：如果检测到特定jdk则激活
+            - os：当匹配的os被检测到时，profile被激活
+                - name：os名称
+                - family：os品牌
+                - arch：操作系统体系结构
+                - version：操作系统版本
+            - property：检测到某一个属性值时（`${}`可以引用）激活
+                - name
+                - value
+            - file：文件的存在或不存在时激活
+                - exists：文件存在时激活
+                - missing：文件不存在时激活
+        - build：构建项目所需要的信息
+        - modules：模块被构建成项目的一部分
+        - repositories：发现依赖和扩展的远程仓库列表
+        - pluginRepository：发现插件的远程仓库列表
+        - dependencies：描述了项目相关的所有依赖
+        - reporting
+        - dependencyManagement
+        - distributionManagement
+- modules：模块被构建成项目的一部分
+- repositories：发现依赖和扩展的远程仓库列表
+    - repository：
+        - releases、snapshots
+            - enabled：表示该仓库是否为下载某种构件而开启
+            - updatePolicy：指定更新发生的频率，always、daily、interval:分钟数、never
+            - checksumPolicy：maven验证构件失败时该怎么做，ignore、fail、warn...
+        - id：远程仓库ID
+        - name：远程仓库名称
+        - url：远程仓库url
+        - layout：定位和排序仓库构件的布局类型，default、legacy
+- pluginRepositories
+- dependencies：描述了项目相关的所有依赖
+    - dependency：
+        - groupId
+        - artifactId
+        - version
+        - type：依赖类型，jar、war、ejb-client、test-jar
+        - classifier：依赖的分类器，可以区分属于同一个POM，但不同构建方式的构件分类器名被附加到文件名的版本号后面，例如使用两个不同版本JDK编译的构件
+        - scope：依赖范围，项目发布过程中决定哪些构件被添加进来。compile，默认范围，用于编译；provided，类似于编译，但支持你期待的jdk或容器提供；runtime，执行时需要使用；test，用于test任务时使用；system，需要外在提供相应的元素
+        - systemPath：仅供system范围使用，不建议使用
+        - exclusions：当计算传递依赖时，从依赖构件列表里，列出被排除的依赖构件集。此元素主要用于解决版本冲突的问题。
+          - exclusion：
+            - artifactId
+            - groupId
+        - optional：可选依赖，如果你在项目B中把依赖C声明为可选，你就需要在依赖于B的项目（例如项目A）中显式地引用对C的依赖，可选依赖阻断依赖的传递性
+- reporting：描述使用报表插件产生报表的规范。当用户执行mvn site时，这些报表就会运行，在页面导航栏中能看到所有报表的链接。
+    - excludeDefaults：true则表示网站不包括默认的报表，这包括信息项目中的报表
+    - outputDirectory：所有产生的报表存放到哪里
+    - plugins：使用报表插件和他们的配置
+        - plugin
+            - groupId
+            - artifactId
+            - version
+            - inherited
+            - configuration：
+            - reportSets
+                - reportSet：
+                    - id：报表集合的唯一标识符
+                    - configuration：产生报表集合时被使用报表集合的配置
+                    - inherited
+                    - reports
+- dependencyManagement：继承自该项目的所有子项目的默认依赖信息，这部分依赖信息不会被立即解析，而是当成子项目声明的一个依赖（必须描述groupId和artifactId），如果groupId和artifactId以外的一些信息没有描述，则通过groupId和artifactId匹配到这里的依赖，并使用这里的依赖信息。
+    - dependencies
+- distrbutionManagement：项目分发信息。在执行mvn deploy命令后要发布的位置，有了这些信息就可以把网站部署到远程服务器或者把构件部署到远程仓库
+    - repository：部署项目产生的构件到远程仓库需要的信息
+        - uniqueVersion：分配给快照唯一一个版本号（由时间戳和构件流水号）？还是每次都是用相同的版本号？参见repositories/repository
+        - id、name、url、layout
+    - snapshotRepository
+        - uniqueVersion：构件的快照部署到哪里？如果没有配置该元素，默认部署到repository元素配置的仓库，参见distributionManagement/repository元素
+        - id、name、url、layout
+    - site：部署项目的网站所需要的信息
+        - id：部署位置的唯一标识符
+        - name：部署位置的名称
+        - url
+    - downloadUrl：项目下载页面的URL。如果没有该元素，用户应该参考主页
+    - relocation：如果构件有了新的group ID和artifact ID（构件移到了新的位置），这里列出构件的重定位信息
+        - groupId、artifactId、version
+        - message：显示给用户的，关于移动的额外信息，
+    - state：给出该构件在远程仓库的状态。不得在本地项目中设置该元素，因为这是工具自动更新的。有效的值有：none（默认），converted（仓库管理员从 Maven 1 POM转换过来），partner（直接从伙伴Maven 2仓库同步过来），deployed（从Maven 2实例部 署），verified（被核实时正确的和最终的）。
+- properties：在POM文件中提供键值对
+
+### Maven的核心概念
+
+1、约定的目录结构：
+
+2、POM
+
+3、坐标
+
+4、坐标
+
+5、依赖
+
+6、仓库
+
+7、生命周期/插件/目标
+
+8、继承
+
+9、聚合
+
+### 第一个maven工程
+
+约定的项目结构：
+
+```
+- 根目录
+  - src
+    - main
+      - java
+      - resources
+      - webapp
+    - test
+      - java
+      - resources
+   - target
+     - classes
+     - test-classes
+   pom.xml
+```
+
+> 为什么要使用约定的项目结构？
+>
+> maven要进行项目的构建，就必须知道项目的各部分文件放在哪里
+>
+> 约定大于配置，为了增强项目的可读性
+
+### 常见的Maven命令
+
+执行与构建相关的命令必须进入pom.xml所在的目录，与编译相关的命令包括编译、打包、测试等命令
+
+常用命令：
+
+```
+mvn clean           清理
+mvn compile         编译主程序
+mvn test-compile    编译测试程序
+mvn test            执行测试
+mvn package         打包
+```
+
+关于联网的问题：
+
+maven的核心程序中仅仅定义了抽象的生命周期，但是具体的工作必须由特定的插件来完成，插件本身并不包含在maven的核心程序中
+
+当我们执行的maven命令需要用到某些插件时，maven核心程序首先要到本地仓库中去寻找
+
+本地仓库的位置在maven配置文件settings.xml中配置，如果没有配置默认是在`~\.m2\repository`
 

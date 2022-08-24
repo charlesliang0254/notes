@@ -486,6 +486,8 @@ webpack是javascript的打包器
 
 
 
+### 使用Vue ui创建一个项目
+
 创建一个Vue项目：vue ui
 
 运行Vue项目：
@@ -530,3 +532,174 @@ export default{
 import HelloWorld from './components/HelloWorld.vue'
 ```
 
+### 使用Vue cli命令行创建vue项目
+
+创建项目：vue init webpack 项目名称
+
+命令输入后，进入安装状态，需要用户输入一些信息
+
+
+
+## Vue实战
+
+### 前后端分离
+
+将一个应用的前端代码后后端代码分开写
+
+如果不使用前后端分离模式，会出现一些问题。
+
+- 传统Java Web开发模式，前端使用JSP开发，JSP不是由后端开发者独立完成的
+- 前端使用html + css +javascript，通过ajax与后端交换数据，前后端只要协调好接口文档就能分开独立开发，但是仍然是一个单独的应用
+- 前后端分离模式下，前端与后端是两个应用，分别开发，分开部署。
+
+实现前后端分离的技术：Spring Boot + Vue.js
+
+### 创建一个Spring Boot+Vue的项目
+
+1、使用vue ui创建一个vue项目，不使用git时关闭git，选择手动配置，选择router和vuex，取消校验器，打开历史模式，不保存模板
+
+2、使用IDEA导入创建的Vue项目，在插件市场安装Vue插件，将javascript版本改为ES6
+
+3、在IDEA的运行/调试配置中新建一个npm，选择命令为run，脚本为serve。然后点击运行按钮启动项目，点击停止按钮关闭项目。
+
+4、创建一个Spring Boot项目，选择lombok、spring web、spring jpa、mysql-connector
+
+applicationProperties配置文件：
+
+```yml
+spring:
+  datasource:
+    url: jdbc:mysql://localhost:3306/test?useUnicode=true&characterEncoding=utf-8&serverTimezone=UTC
+    username: root
+    password: ******
+    driver-class-name: com.mysql.jdbc.Driver
+  jpa:
+    show-sql: true
+    properties:
+      hibernate:
+        hbm2ddl:
+          dialect: org.hibernate.dialect.MySQL5InnoDBDialect
+        format_sql: true
+server:
+  port: 8181
+```
+
+跨域访问的解决方案：
+
+- 使用@CrossOrigin注解
+- 使用如下的全局跨域访问的配置
+
+```java
+@Bean
+public WebMvcConfigurer webMvcConfigurer(){
+    return new WebMvcConfigurer() {
+        @Override
+        public void addCorsMappings(CorsRegistry registry) {
+            registry.addMapping("/**")
+                .allowedOrigins("*")
+                .allowedMethods("GET","HEAD","POST","PUT","DELETE","OPTIONS")
+                .allowCredentials(true)
+                .maxAge(3600)
+                .allowedHeaders("*");
+        }
+    };
+}
+```
+
+- 使用Filter配置跨域访问
+
+```java
+@Bean
+public Filter simpleCorsFilter(){
+    return (request, response, chain) -> {
+        HttpServletResponse resp = (HttpServletResponse) response;
+        resp.setHeader("Access-Control-Allow-Origin","*");
+        resp.setHeader("Access-Control-Allow-Methods","GET,POST,PUT,DELETE,OPTIONS,HEAD");
+        resp.setHeader("Access-Control-Max-Age","3600");
+        resp.setHeader("Access-Control-Allow-Headers",
+                       "access-control-allow-origin, authority, content-type, version-info, X-Requested-With");
+        chain.doFilter(request,resp);
+    };
+}
+```
+
+在dao层使用jpa：
+
+- 实体类使用Entity、Table注解，Id字段使用Id注解
+- 使用lombok注解Data
+- 定义dao层接口并继承JpaRepository接口
+
+### Element UI
+
+Element UI的使用：
+
+- 在Vue客户端中安装vue-cli-plugin-element插件
+- 在element ui官网查看element ui的使用方法
+- 将组件代码引入项目中进行修改
+
+Vue+Element UI：
+
+Vue集成Element UI
+
+Element UI后台管理系统主要的标签：
+
+- el-container：构建整个页面框架
+
+- el-aside：构建左侧菜单
+
+- el-menu：左侧菜单内容
+
+  - :default-openeds  默认展开的菜单，通过菜单的index值关联
+
+  - :default-active  默认选中的菜单，也是通过菜单的index值关联
+
+    > 注意index值是字符串类型必须加单引号，多选使用[]数组
+
+- el-submenu：可展开的菜单
+
+  - index：菜单的索引值，文本类型，而不是数值类型
+
+- template：对应el-submenu的菜单名
+
+- i：设置菜单标签，通过class属性设置
+
+  - el-icon-message、el-icon-menu、el-icon-setting
+
+- el-menu-item：菜单的叶子节点，不可再展开
+
+  - index
+
+### Vue router来动态构建左侧菜单
+
+在vue文件中使用router-view创建显示子模块的区域
+
+在index.js文件中使用children属性添加子路由
+
+渲染页面时，对于给定的路径，在路由树中找到对应的从根节点到叶子节点的路径，然后先渲染父组件，然后再将子组件渲染在router-view中
+
+menu与router的绑定：
+
+- 给el-menu标签添加router属性
+- 在页面中添加router-view标签
+- 给el-menu-item标签添加index，index值就是跳转位置
+- 给父路由添加redirect属性，表示默认跳转位置
+
+### 使用axios完成前后端的数据交互
+
+```javascript
+axios.get('http://localhost:8181/student/findAll/0/5')
+	.then(req=>{
+    	let content = req.data.content;
+        for(let i=0;i<content.length;i++){
+            content[i].gender = (content[i].gender===1?'男':'女');
+        }
+        this.tableData = content;
+        this.totalElements = req.data.totalElements;
+	})
+	.catch(resp=>alert('error!!'));
+axios.post('http://localhost:8181/student/add',this.form)
+	.then(req=>alert(req.data))
+	.catch(resp=>alert('error!!'));
+```
+
+- 注意：使用application/json协议，后台Spring Controller如果要使用一个且只有一个对象接收参数时，必须使用@RequestBody

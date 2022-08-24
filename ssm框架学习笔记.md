@@ -726,7 +726,9 @@ public interface GirlMapper {
   - flushInterval：刷新间隔毫秒数
   - size：引用数目，默认为1024
   - readOnly：只读属性为true时返回缓存对象的浅拷贝，不可修改；只读属性为false时返回缓存对象的深拷贝，可修改。
+
 ### 关系映射
+
 - 实体关系问题
   - 从数学上对数量关系进行描述
     1-1：强弱之分
@@ -1964,7 +1966,7 @@ public class HelloController {
 
 ### 注解的研究
 
-- @RequestMapping
+- @RequestMapping  加在类上或方法上的注解
 
   - value：配置访问的路径
 
@@ -2039,7 +2041,7 @@ public class HelloController {
     </form>
     ```
 
-- @PathVariable
+- @PathVariable：加在方法形参上
 
   - restful风格
 
@@ -2057,9 +2059,35 @@ public class HelloController {
     }
     ```
 
-- @ResponseBody：返回数据而不是一个页面，一般情况下返回的是json格式的数据
+- @ResponseBody：返回数据而不是一个页面，一般情况下返回的是json格式的数据，加在类上或者方法上
   
-- @RequestParam：参见表单数据的提交部分
+- @RequestParam：参见表单数据的提交部分，加在形参上
+
+    ```java
+    username=123&password=456&address=spdb
+        
+    {
+        "username":"123",
+        "password":"456",
+        "address":"spdb"
+    }
+    
+    {
+        "answerSheetId":1,
+        "answerList":[
+            {
+                "questionId":1,
+                "score":2
+            },
+            {
+                "question":2,
+                "score":0
+            }
+        ]
+    }
+    ```
+
+    
 
 - @ModelAttribute：
 
@@ -2112,7 +2140,9 @@ public class HelloController {
 
       **注意如果user同时与表单数据绑定了，那么model中的值会被表单数据传入的值覆盖掉**。
 
-- @RequestBody
+- @RequestBody，加在形参上
+
+    Object,User,List,Map<String,Object>
 
     json数据，不是通过form表单传递，而是通过下面的方式传递数据
 
@@ -2177,7 +2207,7 @@ public class HelloController {
   }
   ```
 
-- @RestController
+- @RestController，只能加在类上
 
   相当于@Controller+@ResponseBody
 
